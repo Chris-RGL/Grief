@@ -1100,11 +1100,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1168499903082300322, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
       propertyPath: destroyOnHit
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1168499903082300322, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
-      propertyPath: reboundSpeedMultiplier
-      value: 30
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1168499903082300326, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
       propertyPath: m_RootOrder
