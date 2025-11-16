@@ -848,6 +848,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Floor (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 6800683103218456099, guid: 1da52a27e57c85244a4eb65e7efce6b5, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1da52a27e57c85244a4eb65e7efce6b5, type: 3}
 --- !u!4 &1132131509450781906 stripped
@@ -917,6 +921,10 @@ PrefabInstance:
     - target: {fileID: 6800683103218456099, guid: 1da52a27e57c85244a4eb65e7efce6b5, type: 3}
       propertyPath: m_Name
       value: Floor (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6800683103218456099, guid: 1da52a27e57c85244a4eb65e7efce6b5, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1da52a27e57c85244a4eb65e7efce6b5, type: 3}
