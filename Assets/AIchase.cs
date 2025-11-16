@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using System;
 
 public class AIchase : MonoBehaviour
 {
@@ -10,6 +12,7 @@ public class AIchase : MonoBehaviour
     public float speed;
     public float acceleration = 20f;
     public float rotationSpeed = 10f;
+    public float zBias;
 
     [Header("Bounce Parameters")]
     public float timeToRebound;
@@ -71,7 +74,12 @@ public class AIchase : MonoBehaviour
     {
         if (_playerTransform == null) return;
 
-        Vector3 directionToPlayer = (_playerTransform.position - _rb.position).normalized;
+        Vector3 modPosition = _playerTransform.position;
+        modPosition.y = modPosition.y + 1;
+
+        
+
+        Vector3 directionToPlayer = (modPosition - _rb.position).normalized;
         Vector3 targetVelocity;
 
         if (_reboundTime > 0f)
@@ -88,6 +96,31 @@ public class AIchase : MonoBehaviour
         else
         {
             targetVelocity = directionToPlayer * speed;
+        }
+
+        // 4. Calculate the Dot Product
+        // We normalize the vectors here to be precise about direction,
+        // though for just checking the sign (positive/negative), it's not
+        // strictly required. It's good practice for clarity.
+
+        Vector2 twoDenemy = (new Vector2(targetVelocity.x, targetVelocity.y)).normalized;
+        Vector2 twoDplayer = (new Vector2(directionToPlayer.x, directionToPlayer.y)).normalized;
+        float dot = Vector2.Dot(twoDenemy, twoDplayer);
+
+        // 5. Check the result
+        if (dot < 0)
+        {
+            // Dot is negative. Velocity is pointing AWAY from the player.
+            // Apply z bias
+            if (targetVelocity.z == 0)
+            {
+                targetVelocity.z = targetVelocity.z + zBias;
+            }
+            else
+            {
+                targetVelocity.z = targetVelocity.z + (zBias * Math.Sign(targetVelocity.z));
+            }
+            
         }
 
         // Smooth acceleration toward target velocity instead of instant change
