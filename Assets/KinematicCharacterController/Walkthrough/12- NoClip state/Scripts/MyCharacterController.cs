@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KinematicCharacterController;
 using System;
+using UnityEngine.Windows;
 
 namespace KinematicCharacterController.Walkthrough.NoClipState
 {
@@ -60,6 +61,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
         [Header("Animation")]
         public Animator CharacterAnimator;
+        private bool isFacingRight = true;
         [Tooltip("Minimum speed to transition from idle to walk animation")]
         public float WalkSpeedThreshold = 0.1f;
 
@@ -96,6 +98,9 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
             // Handle initial state
             TransitionToState(CharacterState.Default);
+
+            // animator setup
+            CharacterAnimator = GetComponent<Animator>();
         }
 
         /// <summary>
@@ -489,44 +494,49 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         {
             if (CharacterAnimator != null)
             {
-                // Calculate horizontal movement speed (velocity along the ground plane)
-                Vector3 horizontalVelocity = Vector3.ProjectOnPlane(Motor.BaseVelocity, Motor.CharacterUp);
-                float speed = horizontalVelocity.magnitude;
-
                 // Get input magnitude for blend trees
                 float inputMagnitude = _moveInputVector.magnitude;
 
-                // Calculate vertical velocity for jump/fall detection
-                float verticalVelocity = Vector3.Dot(Motor.BaseVelocity, Motor.CharacterUp);
+                // This is the local "sideways" movement we need for flipping
+                float localMoveX = 0f;
 
-                // Set animator parameters
-                CharacterAnimator.SetFloat("Speed", speed);
-                CharacterAnimator.SetFloat("ForwardSpeed", inputMagnitude);
-                CharacterAnimator.SetFloat("VerticalVelocity", verticalVelocity);
-
-                CharacterAnimator.SetBool("IsGrounded", Motor.GroundingStatus.IsStableOnGround);
-                CharacterAnimator.SetBool("IsCrouching", _isCrouching);
-                CharacterAnimator.SetBool("IsNoClip", CurrentCharacterState == CharacterState.NoClip);
-                CharacterAnimator.SetBool("IsMoving", speed > WalkSpeedThreshold);
-
-                // Trigger jump animation
-                if (_jumpedThisFrame)
-                {
-                    CharacterAnimator.SetTrigger("Jump");
-                }
-
-                // Optional: Set movement direction for strafing animations
+                // Set velocities
                 if (inputMagnitude > 0.01f)
                 {
                     Vector3 localMove = transform.InverseTransformDirection(_moveInputVector);
-                    CharacterAnimator.SetFloat("MoveX", localMove.x);
-                    CharacterAnimator.SetFloat("MoveZ", localMove.z);
+                    localMoveX = localMove.x; // Store the local x value
+
+                    CharacterAnimator.SetFloat("xVelocity", Math.Abs(localMove.x));
                 }
                 else
                 {
-                    CharacterAnimator.SetFloat("MoveX", 0f);
-                    CharacterAnimator.SetFloat("MoveZ", 0f);
+                    CharacterAnimator.SetFloat("xVelocity", 0f);
                 }
+
+                float verticalVelocity = Motor.Velocity.y;
+                CharacterAnimator.SetFloat("yVelocity", verticalVelocity);
+
+                // Call FlipSprite AFTER we calculate localMoveX
+                FlipSprite(localMoveX);
+
+                // ... (rest of your function) ...
+                CharacterAnimator.SetBool("IsJumping", !Motor.GroundingStatus.IsStableOnGround);
+            }
+        }
+
+        void FlipSprite(float hInput)
+        {
+            // Add a small deadzone to prevent flipping when idle
+            if (Mathf.Abs(hInput) < 0.1f) return;
+
+            if (isFacingRight && hInput < 0f || !isFacingRight && hInput > 0f)
+            {
+                isFacingRight = !isFacingRight;
+
+                // Now this will flip the "Square" object you assigned
+                Vector3 ls = MeshRoot.localScale;
+                ls.x *= -1f;
+                MeshRoot.localScale = ls;
             }
         }
 

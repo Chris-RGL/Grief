@@ -308,7 +308,7 @@ GameObject:
   - component: {fileID: 828067167}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Character
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -420,7 +420,7 @@ GameObject:
   - component: {fileID: 1219715624}
   m_Layer: 0
   m_Name: Character
-  m_TagString: Untagged
+  m_TagString: Character
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -536,7 +536,7 @@ MonoBehaviour:
   IgnoredColliders: []
   OrientTowardsGravity: 0
   Gravity: {x: 0, y: -30, z: 0}
-  MeshRoot: {fileID: 301500497}
+  MeshRoot: {fileID: 1851057207}
 --- !u!95 &1219715624
 Animator:
   serializedVersion: 5
