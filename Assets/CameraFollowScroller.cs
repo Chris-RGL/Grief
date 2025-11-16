@@ -1,57 +1,98 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class CameraFollowScroller : MonoBehaviour
 {
     [Header("References")]
-    public Transform[] groundPieces;
     public Transform player;
+    public Transform lastStartingPlatform;  // Drag your last manually placed platform here
+
+    [Header("Prefab Settings")]
+    public GameObject[] platformPrefabs;  // Your 3 platform prefabs
 
     [Header("Settings")]
     public float pieceLength = 10f;
-    public float bufferDistance = 5f;  // How far behind player before recycling
+    public float bufferDistance = 15f;  // How far behind player before recycling
+    public int maxActivePlatforms = 6;  // Maximum platforms to keep active
+
+    private List<GameObject> spawnedPlatforms = new List<GameObject>();
+    private float nextSpawnX;
+    private int prefabIndex = 0;
 
     void Start()
     {
-        // Sort pieces by X position from left to right
-        System.Array.Sort(groundPieces, (a, b) =>
-            a.position.x.CompareTo(b.position.x));
+        // Set next spawn position to be right after the last starting platform
+        nextSpawnX = lastStartingPlatform.position.x + pieceLength;
 
-        Debug.Log("Ground pieces sorted and ready");
+        Debug.Log($"Starting to spawn platforms after X: {lastStartingPlatform.position.x}");
+        Debug.Log($"Next platform will spawn at X: {nextSpawnX}");
+
+        // Spawn a few initial platforms ahead
+        for (int i = 0; i < 3; i++)
+        {
+            SpawnPlatform();
+        }
     }
 
     void Update()
     {
-        // Check each piece to see if it's behind the player
-        foreach (Transform piece in groundPieces)
+        // Check if player is getting close to the last spawned platform
+        if (spawnedPlatforms.Count > 0)
         {
-            // If piece is behind the player by more than buffer distance
-            if (piece.position.x < player.position.x - bufferDistance)
+            GameObject lastPlatform = spawnedPlatforms[spawnedPlatforms.Count - 1];
+
+            // If player is getting close to the last platform, spawn a new one
+            if (player.position.x > lastPlatform.transform.position.x - (pieceLength * 2))
             {
-                // Find the rightmost (furthest forward) piece
-                Transform rightmostPiece = FindRightmostPiece();
-
-                // Position this piece right after the rightmost one
-                Vector3 newPos = rightmostPiece.position;
-                newPos.x += pieceLength;
-                piece.position = newPos;
-
-                Debug.Log($"Moved {piece.name} from behind player to X: {newPos.x}");
+                SpawnPlatform();
             }
+        }
+
+        // Remove platforms that are far behind the player
+        for (int i = spawnedPlatforms.Count - 1; i >= 0; i--)
+        {
+            if (spawnedPlatforms[i].transform.position.x < player.position.x - bufferDistance)
+            {
+                GameObject platformToRemove = spawnedPlatforms[i];
+                spawnedPlatforms.RemoveAt(i);
+                Destroy(platformToRemove);
+
+                Debug.Log($"Removed platform that was at X: {platformToRemove.transform.position.x}");
+            }
+        }
+
+        // Limit total active platforms
+        while (spawnedPlatforms.Count > maxActivePlatforms)
+        {
+            GameObject oldPlatform = spawnedPlatforms[0];
+            spawnedPlatforms.RemoveAt(0);
+            Destroy(oldPlatform);
         }
     }
 
-    Transform FindRightmostPiece()
+    void SpawnPlatform()
     {
-        Transform rightmost = groundPieces[0];
+        // Get the next prefab (cycles through your prefabs)
+        GameObject prefabToUse = platformPrefabs[prefabIndex % platformPrefabs.Length];
+        prefabIndex++;
 
-        foreach (Transform piece in groundPieces)
-        {
-            if (piece.position.x > rightmost.position.x)
-            {
-                rightmost = piece;
-            }
-        }
+        // Use the last starting platform's Y and Z position
+        Vector3 spawnPos = new Vector3(
+            nextSpawnX,
+            lastStartingPlatform.position.y,
+            lastStartingPlatform.position.z
+        );
 
-        return rightmost;
+        // Spawn the platform
+        GameObject newPlatform = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
+        newPlatform.transform.parent = transform;  // Organize under ScrollManager
+
+        // Add to list
+        spawnedPlatforms.Add(newPlatform);
+
+        // Update next spawn position
+        nextSpawnX += pieceLength;
+
+        Debug.Log($"Spawned {prefabToUse.name} at X: {spawnPos.x}, Y: {spawnPos.y}, Z: {spawnPos.z}");
     }
 }
