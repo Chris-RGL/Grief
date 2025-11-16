@@ -63,7 +63,6 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
-                myAudioSource.PlayOneShot(shootSound);
             }
 
             HandleCharacterInput();
@@ -131,6 +130,8 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             // Only check for clicks when cursor is locked (during gameplay)
             if (Cursor.lockState == CursorLockMode.Locked && Input.GetMouseButtonDown(0))
             {
+                myAudioSource.PlayOneShot(shootSound);
+
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 RaycastHit hit;
 
