@@ -5131,7 +5131,7 @@ MonoBehaviour:
   drag: 0.5
   useInterpolation: 1
   damageAmount: 1
-  destroyOnHit: 0
+  destroyOnHit: 1
   playerLayer:
     serializedVersion: 2
     m_Bits: 4294967295
