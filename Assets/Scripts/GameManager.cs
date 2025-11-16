@@ -28,6 +28,7 @@ public class GameManager : MonoBehaviour
 
     private GameObject currentProjectile;
     private bool isResetting = false;
+    private PlayerHealth playerHealth;
 
     private void Awake()
     {
@@ -54,6 +55,16 @@ public class GameManager : MonoBehaviour
         if (playerTransform == null && playerCharacter != null)
         {
             playerTransform = playerCharacter.transform;
+        }
+
+        // Cache PlayerHealth component
+        if (playerTransform != null)
+        {
+            playerHealth = playerTransform.GetComponent<PlayerHealth>();
+            if (playerHealth == null)
+            {
+                Debug.LogWarning("PlayerHealth component not found on player!");
+            }
         }
 
         // Set initial spawn point if not set
@@ -115,11 +126,29 @@ public class GameManager : MonoBehaviour
         // Wait for specified delay
         yield return new WaitForSeconds(resetDelay);
 
-        // Reset player
+        // Reset player position
         ResetPlayer();
 
         // Reset projectile
         ResetProjectile();
+
+        // IMPORTANT: Restore player health AFTER position reset
+        if (playerHealth != null)
+        {
+            playerHealth.Respawn();
+        }
+        else
+        {
+            Debug.LogWarning("PlayerHealth reference lost! Trying to find it again...");
+            if (playerTransform != null)
+            {
+                playerHealth = playerTransform.GetComponent<PlayerHealth>();
+                if (playerHealth != null)
+                {
+                    playerHealth.Respawn();
+                }
+            }
+        }
 
         isResetting = false;
     }
