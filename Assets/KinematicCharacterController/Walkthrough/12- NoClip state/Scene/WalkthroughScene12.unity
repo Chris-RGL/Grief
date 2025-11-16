@@ -963,10 +963,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Player: {fileID: 1219715618}
   speed: 20
-  acceleration: 20
+  acceleration: 10
   rotationSpeed: 10
-  timeToRebound: 0
-  reboundSpeedMultiplier: 1
+  zBias: 1.2
+  yBias: 1.2
+  timeToRebound: 1.5
+  reboundSpeedMultiplier: 15
   drag: 0.5
   useInterpolation: 1
 --- !u!135 &1337822457
