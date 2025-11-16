@@ -110,24 +110,20 @@ public class PlayerHealth : MonoBehaviour
             GameManager.Instance.OnPlayerDeath();
         }
 
-        // Optional: Respawn after delay
-        StartCoroutine(RespawnCoroutine());
+        // Respawn will be called by GameManager after position reset
+        // No longer using RespawnCoroutine - GameManager handles the full sequence
     }
 
     /// <summary>
-    /// Respawns the player after death
+    /// Public method called by GameManager after position reset to restore health
     /// </summary>
-    private System.Collections.IEnumerator RespawnCoroutine()
+    public void Respawn()
     {
-        yield return new WaitForSeconds(1f);
-
-        // Reset health
         currentHealth = 1;
         isDead = false;
         invincibilityTimer = invincibilityDuration;
-
         onHealthChanged?.Invoke();
-        Debug.Log("Player respawned");
+        Debug.Log("Player respawned with health restored");
     }
 
     /// <summary>
