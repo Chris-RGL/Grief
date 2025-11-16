@@ -22,6 +22,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         private void Start()
         {
             Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
 
             // Tell camera to follow transform
             OrbitCamera.SetFollowTransform(CameraFollowPoint);
@@ -33,12 +34,29 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
         private void Update()
         {
+            // Right-click to unlock cursor and make it visible
+            if (Input.GetMouseButtonDown(1))
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+
+            // Release right-click to lock cursor again
+            if (Input.GetMouseButtonUp(1))
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+
+            // Left-click locks cursor if it's unlocked
             if (Input.GetMouseButtonDown(0))
             {
                 Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
             }
 
             HandleCharacterInput();
+            HandleProjectileClick();
         }
 
         private void LateUpdate()
@@ -70,11 +88,12 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             // Apply inputs to the camera
             OrbitCamera.UpdateWithInput(Time.deltaTime, scrollInput, lookInputVector);
 
-            // Handle toggling zoom level
-            if (Input.GetMouseButtonDown(1))
-            {
-                OrbitCamera.TargetDistance = (OrbitCamera.TargetDistance == 0f) ? OrbitCamera.DefaultDistance : 0f;
-            }
+            // Note: Right-click zoom toggle removed to avoid conflict with cursor control
+            // If you want zoom toggle, use a different key like middle mouse button:
+            // if (Input.GetMouseButtonDown(2))
+            // {
+            //     OrbitCamera.TargetDistance = (OrbitCamera.TargetDistance == 0f) ? OrbitCamera.DefaultDistance : 0f;
+            // }
         }
 
         private void HandleCharacterInput()
@@ -94,6 +113,28 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
             // Apply inputs to character
             Character.SetInputs(ref characterInputs);
+        }
+
+        private void HandleProjectileClick()
+        {
+            // Only check for clicks when cursor is visible and unlocked
+            if (Cursor.lockState != CursorLockMode.Locked && Input.GetMouseButtonDown(0))
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+
+                // Cast a ray from the mouse position
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+                {
+                    // Check if we hit a projectile
+                    AIchase projectile = hit.collider.GetComponent<AIchase>();
+                    if (projectile != null)
+                    {
+                        Debug.Log("Projectile clicked! Destroying...");
+                        Destroy(projectile.gameObject);
+                    }
+                }
+            }
         }
     }
 }

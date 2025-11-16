@@ -175,8 +175,7 @@ public class GameManager : MonoBehaviour
             AIchase aiChase = currentProjectile.GetComponent<AIchase>();
             if (aiChase != null)
             {
-                // The AIchase script will automatically resume chasing
-                // You may want to add a public method to AIchase to reset its state if needed
+                aiChase.ResetState();
             }
 
             Debug.Log($"Projectile reset to: {projectileSpawnPoint.position}");
@@ -200,6 +199,38 @@ public class GameManager : MonoBehaviour
     public void RegisterProjectile(GameObject projectile)
     {
         currentProjectile = projectile;
+        Debug.Log($"Projectile registered: {projectile.name}");
+    }
+
+    /// <summary>
+    /// Unregisters a projectile from the game manager (called when projectile is destroyed)
+    /// </summary>
+    public void UnregisterProjectile(GameObject projectile)
+    {
+        if (currentProjectile == projectile)
+        {
+            currentProjectile = null;
+            Debug.Log($"Projectile unregistered: {projectile.name}");
+
+            // Optionally spawn a new one after a delay
+            if (projectilePrefab != null && projectileSpawnPoint != null)
+            {
+                StartCoroutine(RespawnProjectileAfterDelay(1f));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Respawns a projectile after a delay
+    /// </summary>
+    private System.Collections.IEnumerator RespawnProjectileAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (currentProjectile == null) // Make sure one wasn't spawned already
+        {
+            SpawnNewProjectile();
+        }
     }
 
     /// <summary>

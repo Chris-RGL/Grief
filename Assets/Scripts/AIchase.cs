@@ -26,6 +26,10 @@ public class AIchase : MonoBehaviour
     public bool destroyOnHit = false;
     public LayerMask playerLayer = -1; // Set to player layer for better performance
 
+    [Header("Click Detection")]
+    public bool enableClickHighlight = true;
+    public Color hoverColor = new Color(1f, 0.5f, 0.5f, 1f); // Light red when hovering
+
     // Private variables
     private Rigidbody _rb;
     private Transform _playerTransform;
@@ -34,6 +38,9 @@ public class AIchase : MonoBehaviour
     private Vector3 _currentVelocity;
     private GameObject _player;
     private PlayerHealth _playerHealth;
+    private Renderer _renderer;
+    private Color _originalColor;
+    private bool _isHovering = false;
 
     private void Awake()
     {
@@ -46,6 +53,13 @@ public class AIchase : MonoBehaviour
 
         // Freeze rotation to prevent tumbling
         _rb.freezeRotation = true;
+
+        // Get renderer for highlight effect
+        _renderer = GetComponent<Renderer>();
+        if (_renderer != null && _renderer.material != null)
+        {
+            _originalColor = _renderer.material.color;
+        }
 
         // Register with GameManager if it exists
         if (GameManager.Instance != null)
@@ -191,6 +205,49 @@ public class AIchase : MonoBehaviour
     }
 
     /// <summary>
+    /// Called when mouse enters the projectile's collider
+    /// </summary>
+    private void OnMouseEnter()
+    {
+        if (enableClickHighlight && _renderer != null && _renderer.material != null && Cursor.visible)
+        {
+            _isHovering = true;
+            _renderer.material.color = hoverColor;
+        }
+    }
+
+    /// <summary>
+    /// Called when mouse exits the projectile's collider
+    /// </summary>
+    private void OnMouseExit()
+    {
+        if (enableClickHighlight && _renderer != null && _renderer.material != null)
+        {
+            _isHovering = false;
+            _renderer.material.color = _originalColor;
+        }
+    }
+
+    /// <summary>
+    /// Called when the projectile is clicked - THIS IS THE FIX FOR YOUR BUG
+    /// </summary>
+    private void OnMouseDown()
+    {
+        if (enableClickHighlight && Cursor.visible)
+        {
+            Debug.Log("Projectile clicked and destroyed!");
+
+            // Unregister from GameManager before destroying
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.UnregisterProjectile(gameObject);
+            }
+
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>
     /// Handles collision with the player
     /// </summary>
     private void HandlePlayerHit(GameObject player)
@@ -231,6 +288,22 @@ public class AIchase : MonoBehaviour
         {
             _rb.velocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
+        }
+
+        // Reset color if it was changed
+        if (_renderer != null && _renderer.material != null)
+        {
+            _renderer.material.color = _originalColor;
+        }
+        _isHovering = false;
+    }
+
+    private void OnDestroy()
+    {
+        // Reset material color when destroyed to prevent material leak
+        if (_renderer != null && _renderer.material != null && !_isHovering)
+        {
+            _renderer.material.color = _originalColor;
         }
     }
 }
