@@ -29,6 +29,7 @@ public class AIchase : MonoBehaviour
     [Header("Click Detection")]
     public bool enableClickHighlight = true;
     public Color hoverColor = new Color(1f, 0.5f, 0.5f, 1f); // Light red when hovering
+    public int healthGainOnDestroy = 1; // Health gained when projectile is clicked
 
     // Private variables
     private Rigidbody _rb;
@@ -236,6 +237,30 @@ public class AIchase : MonoBehaviour
         if (enableClickHighlight && Cursor.visible)
         {
             Debug.Log("Projectile clicked and destroyed!");
+
+            // Give player health before destroying
+            if (_playerHealth != null)
+            {
+                _playerHealth.Heal(healthGainOnDestroy);
+            }
+            else
+            {
+                // Try to find player health if not cached
+                GameObject player = GameObject.FindGameObjectWithTag("Character");
+                if (player == null)
+                {
+                    player = GameObject.FindGameObjectWithTag("Player");
+                }
+
+                if (player != null)
+                {
+                    PlayerHealth health = player.GetComponent<PlayerHealth>();
+                    if (health != null)
+                    {
+                        health.Heal(healthGainOnDestroy);
+                    }
+                }
+            }
 
             // Unregister from GameManager before destroying
             if (GameManager.Instance != null)

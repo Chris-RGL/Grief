@@ -9,7 +9,7 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Health Settings")]
     public int maxHealth = 3;
-    public int currentHealth = 3;
+    public int currentHealth = 1;
     public bool invulnerable = false;
 
     [Header("Invincibility Settings")]
@@ -32,7 +32,6 @@ public class PlayerHealth : MonoBehaviour
 
     private void Start()
     {
-        currentHealth = maxHealth;
 
         // Auto-find renderers if not assigned
         if (renderersToFlash == null || renderersToFlash.Length == 0)
@@ -89,14 +88,7 @@ public class PlayerHealth : MonoBehaviour
         {
             Die();
         }
-        else
-        {
-            // Trigger position reset via GameManager
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.OnPlayerDamaged();
-            }
-        }
+        // REMOVED: No longer reset position on damage, only on death
     }
 
     /// <summary>
@@ -112,10 +104,10 @@ public class PlayerHealth : MonoBehaviour
         // Invoke death event
         onDeath?.Invoke();
 
-        // Trigger position reset via GameManager
+        // Trigger position reset via GameManager ONLY ON DEATH
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.OnPlayerDamaged();
+            GameManager.Instance.OnPlayerDeath();
         }
 
         // Optional: Respawn after delay
@@ -130,7 +122,7 @@ public class PlayerHealth : MonoBehaviour
         yield return new WaitForSeconds(1f);
 
         // Reset health
-        currentHealth = maxHealth;
+        currentHealth = 1;
         isDead = false;
         invincibilityTimer = invincibilityDuration;
 
@@ -191,7 +183,7 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     public void ResetHealth()
     {
-        currentHealth = maxHealth;
+        currentHealth = 1;
         isDead = false;
         onHealthChanged?.Invoke();
     }

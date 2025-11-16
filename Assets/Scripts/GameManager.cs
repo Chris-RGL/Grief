@@ -86,13 +86,23 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Call this when player takes damage to reset positions
+    /// Call this when player dies to reset positions
     /// </summary>
-    public void OnPlayerDamaged()
+    public void OnPlayerDeath()
     {
         if (isResetting) return;
 
         StartCoroutine(ResetPositionsCoroutine());
+    }
+
+    /// <summary>
+    /// Legacy method for backward compatibility - redirects to OnPlayerDeath
+    /// </summary>
+    public void OnPlayerDamaged()
+    {
+        // For backward compatibility, this now does nothing
+        // Only death triggers reset now
+        Debug.Log("Player damaged but not resetting - only death triggers reset");
     }
 
     private System.Collections.IEnumerator ResetPositionsCoroutine()
@@ -100,7 +110,7 @@ public class GameManager : MonoBehaviour
         isResetting = true;
 
         // Optional: Add any visual/audio feedback here
-        Debug.Log("Player damaged! Resetting positions...");
+        Debug.Log("Player died! Resetting positions...");
 
         // Wait for specified delay
         yield return new WaitForSeconds(resetDelay);

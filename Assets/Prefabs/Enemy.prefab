@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1168499903082300323}
   - component: {fileID: 1168499903082300327}
   - component: {fileID: 1168499903082300322}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132,9 +132,15 @@ MonoBehaviour:
   rotationSpeed: 10
   zBias: 2
   yBias: 2
-  yBiasCeiling: 10
-  zBiasCeiling: 10
   timeToRebound: 0.25
   reboundSpeedMultiplier: 30
   drag: 0.5
   useInterpolation: 1
+  damageAmount: 1
+  destroyOnHit: 0
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  enableClickHighlight: 1
+  hoverColor: {r: 1, g: 0.5, b: 0.5, a: 1}
+  healthGainOnDestroy: 1
