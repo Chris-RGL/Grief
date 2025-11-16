@@ -489,7 +489,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1219715618}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.84, z: 0}
+  m_LocalPosition: {x: 0, y: 0.39, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -757,7 +757,7 @@ MonoBehaviour:
   lastStartingPlatform: {fileID: 305848002}
   platformPrefabs:
   - {fileID: 5529036212148122675, guid: 734066048be4d184e991313e5ff4e006, type: 3}
-  - {fileID: 6800683103218456099, guid: 1da52a27e57c85244a4eb65e7efce6b5, type: 3}
+  - {fileID: 5643117424305576068, guid: 9e868c645f8eb30458a6ef0d7542216a, type: 3}
   pieceLength: 60
   bufferDistance: 120
   maxActivePlatforms: 6
