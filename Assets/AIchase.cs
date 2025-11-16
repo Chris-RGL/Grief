@@ -14,6 +14,8 @@ public class AIchase : MonoBehaviour
     public float rotationSpeed = 10f;
     public float zBias; // This is your "sling" amount. Make it a high value!
     public float yBias;
+    public float yBiasCeiling;
+    public float zBiasCeiling;
 
     [Header("Bounce Parameters")]
     public float timeToRebound;
@@ -132,8 +134,15 @@ public class AIchase : MonoBehaviour
                 // If target Z is negative (go back) but momentum is positive (go forward),
                 // this will add a positive bias, *fighting* the turn-around.
                 // This creates the "sling" effect.
-                targetVelocity.z = targetVelocity.z + (zBias * zMomentumSign);
-                targetVelocity.y = targetVelocity.y + yBias;
+                if (Math.Abs(_rb.position.z) < zBiasCeiling)
+                {
+                    targetVelocity.z = targetVelocity.z + (zBias * zMomentumSign);
+                }
+
+                if (_rb.position.y < yBiasCeiling)
+                {
+                    targetVelocity.y = targetVelocity.y + yBias;
+                }
             }
         }
 

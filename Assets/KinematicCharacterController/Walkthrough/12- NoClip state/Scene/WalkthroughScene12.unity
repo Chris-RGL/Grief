@@ -966,7 +966,7 @@ MonoBehaviour:
   acceleration: 10
   rotationSpeed: 10
   zBias: 1.2
-  yBias: 1.2
+  yBias: 1.05
   timeToRebound: 1.5
   reboundSpeedMultiplier: 15
   drag: 0.5
