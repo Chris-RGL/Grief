@@ -112,6 +112,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         private bool _shouldBeCrouching = false;
         private bool _isCrouching = false;
         private float _wallJumpControlReduction = 0f;
+        private bool _wallTouchedThisFrame = false;
 
         private void Start()
         {
@@ -486,11 +487,19 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                             {
                                 ResetWallDetection();
                             }
+                            // If we were on a wall but didn't touch it this frame, we've left the wall
+                            else if (_isOnWall && !_wallTouchedThisFrame)
+                            {
+                                ResetWallDetection();
+                            }
                             // If we're still on a wall, increment the timer
                             else if (_isOnWall)
                             {
                                 _timeOnWall += deltaTime;
                             }
+
+                            // Reset the flag for next frame
+                            _wallTouchedThisFrame = false;
                         }
 
                         // Handle uncrouching
@@ -633,6 +642,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                         {
                             _isOnWall = true;
                             _wallNormal = hitNormal;
+                            _wallTouchedThisFrame = true;  // Mark that we touched a wall this frame
 
                             // Reset timer if this is a new wall (different collider)
                             if (_wallCollider != hitCollider)
@@ -649,12 +659,9 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                                 _wallJumpNormal = hitNormal;
                             }
                         }
-                        else
-                        {
-                            // If we hit something but it doesn't qualify as a wall, reset detection
-                            // This prevents false positives on shallow slopes or ground
-                            ResetWallDetection();
-                        }
+                        // NOTE: Removed the else block that was resetting wall detection
+                        // Wall detection should only be reset when grounded (handled in UpdateVelocity)
+                        // or when explicitly leaving the wall, not just because we hit something else
                         break;
                     }
             }

@@ -858,6 +858,10 @@ MonoBehaviour:
   WallJumpControlRecoveryTime: 0.4
   JumpPreGroundingGraceTime: 0.03
   JumpPostGroundingGraceTime: 0.03
+  MinWallAngle: 45
+  _isOnWall: 0
+  _wallNormal: {x: 0, y: 0, z: 0}
+  _timeOnWall: 0
   NoClipMoveSpeed: 10
   NoClipSharpness: 15
   CharacterAnimator: {fileID: 1219715624}
@@ -1149,6 +1153,10 @@ PrefabInstance:
     - target: {fileID: 1168499903082300333, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
       propertyPath: m_Name
       value: Enemy
+      objectReference: {fileID: 0}
+    - target: {fileID: 1168499903082300333, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
