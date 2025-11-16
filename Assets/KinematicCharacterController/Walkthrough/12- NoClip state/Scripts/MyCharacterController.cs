@@ -55,6 +55,28 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         public float JumpPreGroundingGraceTime = 0f;
         public float JumpPostGroundingGraceTime = 0f;
 
+        [Header("Wall Detection")]
+        [Tooltip("Minimum angle (in degrees) between surface normal and up vector to be considered a wall")]
+        [Range(0f, 90f)]
+        public float MinWallAngle = 45f;
+
+        // Wall detection state (read-only, visible in inspector for debugging)
+        [Tooltip("Is the character currently touching a wall?")]
+        [SerializeField] private bool _isOnWall;
+        [Tooltip("The normal vector of the wall being touched")]
+        [SerializeField] private Vector3 _wallNormal;
+        [Tooltip("Time the character has been on the current wall")]
+        [SerializeField] private float _timeOnWall;
+
+        // Public accessors
+        public bool IsOnWall => _isOnWall;
+        public Vector3 WallNormal => _wallNormal;
+        public float TimeOnWall => _timeOnWall;
+
+        // Wall collider (not serialized as Unity can't serialize Collider references properly in this context)
+        private Collider _wallCollider;
+        public Collider WallCollider => _wallCollider;
+
         [Header("NoClip")]
         public float NoClipMoveSpeed = 10f;
         public float NoClipSharpness = 15;
@@ -457,6 +479,20 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                             }
                         }
 
+                        // Handle wall detection state updates
+                        {
+                            // If we're on stable ground, we're not on a wall
+                            if (Motor.GroundingStatus.IsStableOnGround)
+                            {
+                                ResetWallDetection();
+                            }
+                            // If we're still on a wall, increment the timer
+                            else if (_isOnWall)
+                            {
+                                _timeOnWall += deltaTime;
+                            }
+                        }
+
                         // Handle uncrouching
                         if (_isCrouching && !_shouldBeCrouching)
                         {
@@ -519,8 +555,17 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                 // Call FlipSprite AFTER we calculate localMoveX
                 FlipSprite(localMoveX);
 
-                // ... (rest of your function) ...
+                // Set jumping state
                 CharacterAnimator.SetBool("IsJumping", !Motor.GroundingStatus.IsStableOnGround);
+
+                // Set wall detection state
+                CharacterAnimator.SetBool("IsOnWall", IsOnWall);
+
+                // Force immediate update if we just left the wall
+                if (!IsOnWall && CharacterAnimator.GetBool("IsOnWall"))
+                {
+                    CharacterAnimator.Update(0f);
+                }
             }
         }
 
@@ -538,6 +583,29 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                 ls.x *= -1f;
                 MeshRoot.localScale = ls;
             }
+        }
+
+        /// <summary>
+        /// Helper method to determine if a surface normal qualifies as a wall
+        /// </summary>
+        private bool IsWall(Vector3 surfaceNormal)
+        {
+            // Calculate the angle between the surface normal and the character's up direction
+            float angle = Vector3.Angle(surfaceNormal, Motor.CharacterUp);
+
+            // If the angle is greater than the minimum wall angle, it's a wall
+            return angle >= MinWallAngle;
+        }
+
+        /// <summary>
+        /// Resets all wall detection state
+        /// </summary>
+        private void ResetWallDetection()
+        {
+            _isOnWall = false;
+            _wallNormal = Vector3.zero;
+            _wallCollider = null;
+            _timeOnWall = 0f;
         }
 
         public bool IsColliderValidForCollisions(Collider coll)
@@ -559,11 +627,33 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             {
                 case CharacterState.Default:
                     {
-                        // We can wall jump only if we are not stable on ground and are moving against an obstruction
-                        if (AllowWallJump && !Motor.GroundingStatus.IsStableOnGround && !hitStabilityReport.IsStable)
+                        // Detect if we're hitting a wall
+                        // A wall is defined as: not stable on ground, hit is not stable, and meets minimum wall angle
+                        if (!Motor.GroundingStatus.IsStableOnGround && !hitStabilityReport.IsStable && IsWall(hitNormal))
                         {
-                            _canWallJump = true;
-                            _wallJumpNormal = hitNormal;
+                            _isOnWall = true;
+                            _wallNormal = hitNormal;
+
+                            // Reset timer if this is a new wall (different collider)
+                            if (_wallCollider != hitCollider)
+                            {
+                                _timeOnWall = 0f;
+                            }
+
+                            _wallCollider = hitCollider;
+
+                            // Existing wall jump logic
+                            if (AllowWallJump)
+                            {
+                                _canWallJump = true;
+                                _wallJumpNormal = hitNormal;
+                            }
+                        }
+                        else
+                        {
+                            // If we hit something but it doesn't qualify as a wall, reset detection
+                            // This prevents false positives on shallow slopes or ground
+                            ResetWallDetection();
                         }
                         break;
                     }
