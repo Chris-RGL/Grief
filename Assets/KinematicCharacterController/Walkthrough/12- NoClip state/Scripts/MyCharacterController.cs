@@ -47,6 +47,10 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         public bool AllowDoubleJump = false;
         public bool AllowWallJump = false;
         public float JumpSpeed = 10f;
+        public float WallJumpSpeed = 12f;
+        [Range(0f, 1f)]
+        public float WallJumpInputInfluence = 0.3f;
+        public float WallJumpControlRecoveryTime = 0.2f;
         public float JumpPreGroundingGraceTime = 0f;
         public float JumpPostGroundingGraceTime = 0f;
 
@@ -78,6 +82,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         private Vector3 _internalVelocityAdd = Vector3.zero;
         private bool _shouldBeCrouching = false;
         private bool _isCrouching = false;
+        private float _wallJumpControlReduction = 0f;
 
         private void Start()
         {
@@ -172,7 +177,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                 cameraPlanarDirection = Vector3.ProjectOnPlane(inputs.CameraRotation * Vector3.up, Motor.CharacterUp).normalized;
             }
             Quaternion cameraPlanarRotation = Quaternion.LookRotation(cameraPlanarDirection, Motor.CharacterUp);
-            
+
             switch (CurrentCharacterState)
             {
                 case CharacterState.Default:
@@ -274,6 +279,9 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                         Vector3 targetMovementVelocity = Vector3.zero;
                         if (Motor.GroundingStatus.IsStableOnGround)
                         {
+                            // Reset wall jump control reduction when grounded
+                            _wallJumpControlReduction = 0f;
+
                             // Reorient velocity on slope
                             currentVelocity = Motor.GetDirectionTangentToSurface(currentVelocity, Motor.GroundingStatus.GroundNormal) * currentVelocity.magnitude;
 
@@ -287,9 +295,19 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                         }
                         else
                         {
+                            // Recover control gradually after wall jump
+                            if (_wallJumpControlReduction > 0f)
+                            {
+                                _wallJumpControlReduction -= deltaTime / WallJumpControlRecoveryTime;
+                                _wallJumpControlReduction = Mathf.Max(0f, _wallJumpControlReduction);
+                            }
+
                             // Add move input
                             if (_moveInputVector.sqrMagnitude > 0f)
                             {
+                                // Calculate effective air control (reduced after wall jump, gradually recovers)
+                                float airControlMultiplier = Mathf.Lerp(1f, WallJumpInputInfluence, _wallJumpControlReduction);
+
                                 targetMovementVelocity = _moveInputVector * MaxAirMoveSpeed;
 
                                 // Prevent climbing on un-stable slopes with air movement
@@ -300,7 +318,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                                 }
 
                                 Vector3 velocityDiff = Vector3.ProjectOnPlane(targetMovementVelocity - currentVelocity, Gravity);
-                                currentVelocity += velocityDiff * AirAccelerationSpeed * deltaTime;
+                                currentVelocity += velocityDiff * AirAccelerationSpeed * airControlMultiplier * deltaTime;
                             }
 
                             // Gravity
@@ -337,21 +355,36 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                                 {
                                     // Calculate jump direction before ungrounding
                                     Vector3 jumpDirection = Motor.CharacterUp;
+                                    float jumpPower = JumpSpeed;
+
                                     if (_canWallJump)
                                     {
-                                        jumpDirection = _wallJumpNormal;
+                                        // Blend wall normal with upward direction
+                                        Vector3 wallPushDirection = _wallJumpNormal.normalized;
+                                        jumpDirection = (wallPushDirection + Motor.CharacterUp).normalized;
+                                        jumpPower = WallJumpSpeed;
+
+                                        // Set control reduction (will gradually recover)
+                                        _wallJumpControlReduction = 1f;
+
+                                        // Clear existing velocity and apply wall jump
+                                        currentVelocity = jumpDirection * jumpPower;
                                     }
                                     else if (Motor.GroundingStatus.FoundAnyGround && !Motor.GroundingStatus.IsStableOnGround)
                                     {
                                         jumpDirection = Motor.GroundingStatus.GroundNormal;
                                     }
 
-                                    // Makes the character skip ground probing/snapping on its next update. 
-                                    // If this line weren't here, the character would remain snapped to the ground when trying to jump. Try commenting this line out and see.
-                                    Motor.ForceUnground(0.1f);
+                                    if (!_canWallJump)
+                                    {
+                                        // Makes the character skip ground probing/snapping on its next update. 
+                                        // If this line weren't here, the character would remain snapped to the ground when trying to jump. Try commenting this line out and see.
+                                        Motor.ForceUnground(0.1f);
 
-                                    // Add to the return velocity and reset jump state
-                                    currentVelocity += (jumpDirection * JumpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
+                                        // Add to the return velocity and reset jump state
+                                        currentVelocity += (jumpDirection * jumpPower) - Vector3.Project(currentVelocity, Motor.CharacterUp);
+                                    }
+
                                     _jumpRequested = false;
                                     _jumpConsumed = true;
                                     _jumpedThisFrame = true;
