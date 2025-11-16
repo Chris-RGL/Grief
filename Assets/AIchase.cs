@@ -6,8 +6,6 @@ using System; // Keep this for Math.Sign if you prefer, but Unity's Mathf.Sign i
 
 public class AIchase : MonoBehaviour
 {
-    public GameObject Player;
-
     [Header("Seeking")]
     public float speed;
     public float acceleration = 20f;
@@ -31,6 +29,7 @@ public class AIchase : MonoBehaviour
     private Vector3 _bounceDirection;
     private float _reboundTime;
     private Vector3 _currentVelocity;
+    private GameObject _player;
 
     private void Awake()
     {
@@ -47,14 +46,25 @@ public class AIchase : MonoBehaviour
 
     void Start()
     {
-        // Assign the player transform from the Player GameObject
-        if (Player != null)
+        StartCoroutine(FindPlayerDelayed());
+    }
+
+    IEnumerator FindPlayerDelayed()
+    {
+        yield return null; // Wait for one frame to ensure the player is in the scene
+
+        // Find and cache player transform by tag
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Character");
+        if (playerObject != null)
         {
-            _playerTransform = Player.transform;
+            _player = playerObject;
+            _playerTransform = _player.transform;
         }
         else
         {
-            Debug.LogError("Player GameObject not assigned in AIchase script on " + gameObject.name);
+            Debug.LogError("No GameObject with the 'Character' tag found (after delay)!", this);
+            this.enabled = false;
+            yield break;
         }
     }
 
@@ -177,7 +187,8 @@ public class AIchase : MonoBehaviour
                 Vector3 incomingVelocity = _rb.velocity.normalized;
 
                 // Reflect the incoming direction off the surface normal
-                _bounceDirection = Vector3.Reflect(incomingVelocity, contact.normal).normalized;
+                //_bounceDirection = Vector3.Reflect(incomingVelocity, contact.normal).normalized;
+                _bounceDirection = contact.normal;
 
                 // Start rebound timer
                 _reboundTime = timeToRebound;
