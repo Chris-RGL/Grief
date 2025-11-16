@@ -17,13 +17,11 @@ public class CameraFollowScroller : MonoBehaviour
 
     private List<GameObject> spawnedPlatforms = new List<GameObject>();
     private float nextSpawnX;
-    private int prefabIndex = 0;
 
     void Start()
     {
         // Set next spawn position to be right after the last starting platform
         nextSpawnX = lastStartingPlatform.position.x + pieceLength;
-
         Debug.Log($"Starting to spawn platforms after X: {lastStartingPlatform.position.x}");
         Debug.Log($"Next platform will spawn at X: {nextSpawnX}");
 
@@ -56,7 +54,6 @@ public class CameraFollowScroller : MonoBehaviour
                 GameObject platformToRemove = spawnedPlatforms[i];
                 spawnedPlatforms.RemoveAt(i);
                 Destroy(platformToRemove);
-
                 Debug.Log($"Removed platform that was at X: {platformToRemove.transform.position.x}");
             }
         }
@@ -72,9 +69,8 @@ public class CameraFollowScroller : MonoBehaviour
 
     void SpawnPlatform()
     {
-        // Get the next prefab (cycles through your prefabs)
-        GameObject prefabToUse = platformPrefabs[prefabIndex % platformPrefabs.Length];
-        prefabIndex++;
+        // Get a random prefab instead of cycling through them
+        GameObject prefabToUse = platformPrefabs[Random.Range(0, platformPrefabs.Length)];
 
         // Use the last starting platform's Y and Z position
         Vector3 spawnPos = new Vector3(
