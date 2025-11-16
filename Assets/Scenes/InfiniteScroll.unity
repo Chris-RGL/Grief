@@ -1102,10 +1102,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1168499903082300322, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
-      propertyPath: destroyOnHit
-      value: 0
-      objectReference: {fileID: 0}
+    - target: {fileID: 156917486, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
+      propertyPath: LightsModule.light
+      value: 
+      objectReference: {fileID: 1354290988}
     - target: {fileID: 1168499903082300326, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
       propertyPath: m_RootOrder
       value: 1
@@ -1153,10 +1153,6 @@ PrefabInstance:
     - target: {fileID: 1168499903082300333, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
       propertyPath: m_Name
       value: Enemy
-      objectReference: {fileID: 0}
-    - target: {fileID: 1168499903082300333, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
