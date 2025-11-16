@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using KinematicCharacterController;
@@ -21,7 +21,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
         [Header("Shooting Animation")]
         public Animator characterAnimator; // Assign your character's Animator
-        public string shootAnimationTrigger = "Shoot"; // Name of trigger in Animator
+        public string shootAnimationTrigger; // Name of trigger in Animator
 
         private void Start()
         {
@@ -121,8 +121,8 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
         private void HandleProjectileClick()
         {
-            // Only check for clicks when cursor is visible and unlocked
-            if (Cursor.lockState != CursorLockMode.Locked && Input.GetMouseButtonDown(0))
+            // Only check for clicks when cursor is locked (during gameplay)
+            if (Cursor.lockState == CursorLockMode.Locked && Input.GetMouseButtonDown(0))
             {
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 RaycastHit hit;

@@ -282,15 +282,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: MaxDistance
-      value: 14
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: MinDistance
-      value: 14
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: DefaultDistance
-      value: 14
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: MaxVerticalAngle
@@ -426,7 +426,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1606540309462199638, guid: 99c2afe8e76babc42a6347f01a0782a5, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -1.87
       objectReference: {fileID: 0}
     - target: {fileID: 1606540309462199638, guid: 99c2afe8e76babc42a6347f01a0782a5, type: 3}
       propertyPath: m_LocalPosition.y
@@ -434,7 +434,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1606540309462199638, guid: 99c2afe8e76babc42a6347f01a0782a5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 12.71
+      value: 12.35
       objectReference: {fileID: 0}
     - target: {fileID: 1606540309462199638, guid: 99c2afe8e76babc42a6347f01a0782a5, type: 3}
       propertyPath: m_LocalRotation.w
@@ -636,8 +636,8 @@ MonoBehaviour:
   OrbitCamera: {fileID: 363861577}
   CameraFollowPoint: {fileID: 1740277156}
   Character: {fileID: 1219715623}
-  shakeDuration: 0.15
-  shakeMagnitude: 0.05
+  characterAnimator: {fileID: 1219715624}
+  shootAnimationTrigger: Shoot
 --- !u!850595691 &841096943
 LightingSettings:
   m_ObjectHideFlags: 0
