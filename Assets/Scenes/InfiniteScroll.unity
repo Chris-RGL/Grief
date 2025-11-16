@@ -1115,8 +1115,7 @@ MonoBehaviour:
   player: {fileID: 1219715622}
   lastStartingPlatform: {fileID: 305848002}
   platformPrefabs:
-  - {fileID: 5529036212148122675, guid: 734066048be4d184e991313e5ff4e006, type: 3}
-  - {fileID: 5643117424305576068, guid: 9e868c645f8eb30458a6ef0d7542216a, type: 3}
+  - {fileID: 5529036212148122675, guid: 4aacc63d45bbf9643a8584f24ec7e137, type: 3}
   pieceLength: 60
   bufferDistance: 120
   maxActivePlatforms: 6
