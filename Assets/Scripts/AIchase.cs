@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
-using System; // Keep this for Math.Sign if you prefer, but Unity's Mathf.Sign is more common
+using System;
 
 public class AIchase : MonoBehaviour
 {
@@ -10,7 +10,7 @@ public class AIchase : MonoBehaviour
     public float speed;
     public float acceleration = 20f;
     public float rotationSpeed = 10f;
-    public float zBias; // This is your "sling" amount. Make it a high value!
+    public float zBias;
     public float yBias;
 
     [Header("Bounce Parameters")]
@@ -21,6 +21,16 @@ public class AIchase : MonoBehaviour
     public float drag = 0.5f;
     public bool useInterpolation = true;
 
+    [Header("Damage Settings")]
+    public int damageAmount = 1;
+    public bool destroyOnHit = false;
+    public LayerMask playerLayer = -1; // Set to player layer for better performance
+
+    [Header("Click Detection")]
+    public bool enableClickHighlight = true;
+    public Color hoverColor = new Color(1f, 0.5f, 0.5f, 1f); // Light red when hovering
+    public int healthGainOnDestroy = 1; // Health gained when projectile is clicked
+
     // Private variables
     private Rigidbody _rb;
     private Transform _playerTransform;
@@ -28,6 +38,10 @@ public class AIchase : MonoBehaviour
     private float _reboundTime;
     private Vector3 _currentVelocity;
     private GameObject _player;
+    private PlayerHealth _playerHealth;
+    private Renderer _renderer;
+    private Color _originalColor;
+    private bool _isHovering = false;
 
     private void Awake()
     {
@@ -40,6 +54,19 @@ public class AIchase : MonoBehaviour
 
         // Freeze rotation to prevent tumbling
         _rb.freezeRotation = true;
+
+        // Get renderer for highlight effect
+        _renderer = GetComponent<Renderer>();
+        if (_renderer != null && _renderer.material != null)
+        {
+            _originalColor = _renderer.material.color;
+        }
+
+        // Register with GameManager if it exists
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.RegisterProjectile(gameObject);
+        }
     }
 
     void Start()
@@ -49,7 +76,7 @@ public class AIchase : MonoBehaviour
 
     IEnumerator FindPlayerDelayed()
     {
-        yield return null; // Wait for one frame to ensure the player is in the scene
+        yield return null;
 
         // Find and cache player transform by tag
         GameObject playerObject = GameObject.FindGameObjectWithTag("Character");
@@ -57,6 +84,12 @@ public class AIchase : MonoBehaviour
         {
             _player = playerObject;
             _playerTransform = _player.transform;
+            _playerHealth = _player.GetComponent<PlayerHealth>();
+
+            if (_playerHealth == null)
+            {
+                Debug.LogWarning("Player found but PlayerHealth component is missing! Add PlayerHealth to player.", this);
+            }
         }
         else
         {
@@ -75,6 +108,7 @@ public class AIchase : MonoBehaviour
             if (foundPlayer != null)
             {
                 _playerTransform = foundPlayer.transform;
+                _playerHealth = foundPlayer.GetComponent<PlayerHealth>();
                 Debug.Log("Found player automatically");
             }
             return;
@@ -86,20 +120,18 @@ public class AIchase : MonoBehaviour
         if (_playerTransform == null) return;
 
         Vector3 modPosition = _playerTransform.position;
-        modPosition.y = modPosition.y + 1; // Kept your offset
+        modPosition.y = modPosition.y + 1;
 
         Vector3 directionToPlayer = (modPosition - _rb.position).normalized;
-        Vector3 targetVelocity; // We will set this in the logic below
+        Vector3 targetVelocity;
 
         if (_reboundTime > 0f)
         {
             // --- Rebound Logic (from wall collision) ---
-            // This logic overrides the chase logic
             float reboundInfluence = _reboundTime / timeToRebound;
             Vector3 reboundVelocity = _bounceDirection * speed * reboundSpeedMultiplier;
-            Vector3 chaseVelocity = directionToPlayer * speed; // Need this for the Lerp
+            Vector3 chaseVelocity = directionToPlayer * speed;
 
-            // Blend from pure rebound back to chasing
             targetVelocity = Vector3.Lerp(chaseVelocity, reboundVelocity, reboundInfluence);
 
             _reboundTime -= Time.fixedDeltaTime;
@@ -107,56 +139,32 @@ public class AIchase : MonoBehaviour
         else
         {
             // --- Standard Chase & "Overshoot" Logic ---
-
-            // Start with the basic chase velocity
             targetVelocity = directionToPlayer * speed;
 
-            // 1. Get the enemy's current velocity
             Vector3 currentVelocity = _rb.velocity;
-
-            // 2. Check if we are moving "past" the player
-            // We do this by comparing the direction to the player with our current movement direction
-            // If the dot product is negative, we are moving generally away from them.
             float dot = Vector3.Dot(currentVelocity.normalized, directionToPlayer);
 
-            // 3. Check the result (using a small threshold for stability)
-            // We also check that we have *some* velocity, otherwise dot product is unreliable
             if (dot < 0.1f && currentVelocity.sqrMagnitude > 1.0f)
             {
-                // We are moving AWAY from the player (a "miss").
-                // Now we apply the "sling" bias.
-
-                // Get the sign of our *current* Z velocity (our momentum)
                 float zMomentumSign = Mathf.Sign(currentVelocity.z);
 
-                // If we are perfectly aligned (z-velocity is 0),
-                // we need to decide which way to sling.
-                // Let's sling in the direction *opposite* the player's Z.
                 if (zMomentumSign == 0)
                 {
-                    zMomentumSign = 1; // Default to +Z if still zero
+                    zMomentumSign = 1;
                 }
 
-                // Apply the bias.
-                // This will *add* (zBias * +/-1) to the target Z.
-                // If target Z is negative (go back) but momentum is positive (go forward),
-                // this will add a positive bias, *fighting* the turn-around.
-                // This creates the "sling" effect.
                 targetVelocity.z = targetVelocity.z + (zBias * zMomentumSign);
                 targetVelocity.y = targetVelocity.y + yBias;
             }
         }
 
-        // --- Apply Velocity & Rotation (applies in all cases) ---
-
-        // Smooth acceleration toward target velocity
+        // --- Apply Velocity & Rotation ---
         _currentVelocity = Vector3.MoveTowards(_rb.velocity, targetVelocity, acceleration * Time.fixedDeltaTime);
         _rb.velocity = _currentVelocity;
 
         Debug.DrawRay(_rb.position, _currentVelocity, Color.red);
         Debug.DrawRay(_rb.position, directionToPlayer * 2f, Color.blue);
 
-        // Smooth rotation toward movement direction
         if (_currentVelocity.sqrMagnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(_currentVelocity);
@@ -167,26 +175,160 @@ public class AIchase : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        // Check if we hit the player
+        if (collision.gameObject.CompareTag("Character") || collision.gameObject.CompareTag("Player"))
+        {
+            HandlePlayerHit(collision.gameObject);
+            return;
+        }
+
+        // Check using layer mask if set
+        if (playerLayer != -1 && ((1 << collision.gameObject.layer) & playerLayer) != 0)
+        {
+            HandlePlayerHit(collision.gameObject);
+            return;
+        }
+
+        // Handle wall bounce
         if (collision.contactCount > 0)
         {
-            // Only trigger rebound if we are not *already* rebounding
             if (_reboundTime <= 0f)
             {
                 ContactPoint contact = collision.GetContact(0);
-
-                // Get direction of movement
                 Vector3 incomingVelocity = _rb.velocity.normalized;
-
-                // Reflect the incoming direction off the surface normal
-                //_bounceDirection = Vector3.Reflect(incomingVelocity, contact.normal).normalized;
                 _bounceDirection = contact.normal;
-
-                // Start rebound timer
                 _reboundTime = timeToRebound;
 
                 Debug.DrawRay(contact.point, contact.normal * 2f, Color.green, 1f);
                 Debug.DrawRay(contact.point, _bounceDirection * 2f, Color.yellow, 1f);
             }
+        }
+    }
+
+    /// <summary>
+    /// Called when mouse enters the projectile's collider
+    /// </summary>
+    private void OnMouseEnter()
+    {
+        if (enableClickHighlight && _renderer != null && _renderer.material != null && Cursor.visible)
+        {
+            _isHovering = true;
+            _renderer.material.color = hoverColor;
+        }
+    }
+
+    /// <summary>
+    /// Called when mouse exits the projectile's collider
+    /// </summary>
+    private void OnMouseExit()
+    {
+        if (enableClickHighlight && _renderer != null && _renderer.material != null)
+        {
+            _isHovering = false;
+            _renderer.material.color = _originalColor;
+        }
+    }
+
+    /// <summary>
+    /// Called when the projectile is clicked - THIS IS THE FIX FOR YOUR BUG
+    /// </summary>
+    private void OnMouseDown()
+    {
+        if (enableClickHighlight && Cursor.visible)
+        {
+            Debug.Log("Projectile clicked and destroyed!");
+
+            // Give player health before destroying
+            if (_playerHealth != null)
+            {
+                _playerHealth.Heal(healthGainOnDestroy);
+            }
+            else
+            {
+                // Try to find player health if not cached
+                GameObject player = GameObject.FindGameObjectWithTag("Character");
+                if (player == null)
+                {
+                    player = GameObject.FindGameObjectWithTag("Player");
+                }
+
+                if (player != null)
+                {
+                    PlayerHealth health = player.GetComponent<PlayerHealth>();
+                    if (health != null)
+                    {
+                        health.Heal(healthGainOnDestroy);
+                    }
+                }
+            }
+
+            // Unregister from GameManager before destroying
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.UnregisterProjectile(gameObject);
+            }
+
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Handles collision with the player
+    /// </summary>
+    private void HandlePlayerHit(GameObject player)
+    {
+        Debug.Log("Projectile hit player!");
+
+        // Deal damage to player
+        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            playerHealth.TakeDamage(damageAmount);
+        }
+        else
+        {
+            // Fallback: directly call GameManager if PlayerHealth is missing
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.OnPlayerDamaged();
+            }
+        }
+
+        // Optionally destroy this projectile
+        if (destroyOnHit)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Public method to reset projectile state (can be called by GameManager)
+    /// </summary>
+    public void ResetState()
+    {
+        _reboundTime = 0f;
+        _currentVelocity = Vector3.zero;
+
+        if (_rb != null)
+        {
+            _rb.velocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+        }
+
+        // Reset color if it was changed
+        if (_renderer != null && _renderer.material != null)
+        {
+            _renderer.material.color = _originalColor;
+        }
+        _isHovering = false;
+    }
+
+    private void OnDestroy()
+    {
+        // Reset material color when destroyed to prevent material leak
+        if (_renderer != null && _renderer.material != null && !_isHovering)
+        {
+            _renderer.material.color = _originalColor;
         }
     }
 }
