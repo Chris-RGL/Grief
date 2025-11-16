@@ -19,6 +19,10 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         private const string HorizontalInput = "Horizontal";
         private const string VerticalInput = "Vertical";
 
+        [Header("Shooting Animation")]
+        public Animator characterAnimator; // Assign your character's Animator
+        public string shootAnimationTrigger = "Shoot"; // Name of trigger in Animator
+
         private void Start()
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -82,7 +86,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             // Input for zooming the camera (disabled in WebGL because it can cause problems)
             float scrollInput = -Input.GetAxis(MouseScrollInput);
 #if UNITY_WEBGL
-    scrollInput = 0f;
+            scrollInput = 0f;
 #endif
 
             // Apply inputs to the camera
@@ -131,9 +135,25 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                     if (projectile != null)
                     {
                         Debug.Log("Projectile clicked! Destroying...");
+
+                        // PLAY SHOOTING ANIMATION/EFFECT
+                        PlayShootEffect();
+
                         Destroy(projectile.gameObject);
                     }
                 }
+            }
+        }
+
+        private void PlayShootEffect()
+        {
+            if (characterAnimator != null)
+            {
+                characterAnimator.SetTrigger(shootAnimationTrigger);
+            }
+            else
+            {
+                Debug.LogWarning("Character Animator not assigned! Please assign it in the Inspector.");
             }
         }
     }

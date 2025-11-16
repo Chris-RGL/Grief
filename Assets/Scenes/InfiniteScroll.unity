@@ -282,11 +282,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: MaxDistance
-      value: 20
+      value: 14
+      objectReference: {fileID: 0}
+    - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
+      propertyPath: MinDistance
+      value: 14
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: DefaultDistance
-      value: 10
+      value: 14
       objectReference: {fileID: 0}
     - target: {fileID: 114014416615829144, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: MaxVerticalAngle
@@ -393,13 +397,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 416568082}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.3737793, y: 4.37, z: 9.2}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 4.3737793, y: 3.7979999, z: 9.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 7
+  m_Father: {fileID: 1219715622}
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &451128686
 PrefabInstance:
@@ -632,6 +636,8 @@ MonoBehaviour:
   OrbitCamera: {fileID: 363861577}
   CameraFollowPoint: {fileID: 1740277156}
   Character: {fileID: 1219715623}
+  shakeDuration: 0.15
+  shakeMagnitude: 0.05
 --- !u!850595691 &841096943
 LightingSettings:
   m_ObjectHideFlags: 0
@@ -829,6 +835,7 @@ Transform:
   - {fileID: 301500497}
   - {fileID: 1740277156}
   - {fileID: 1851057207}
+  - {fileID: 416568083}
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -856,9 +863,9 @@ MonoBehaviour:
   AllowJumpingWhenSliding: 1
   AllowDoubleJump: 0
   AllowWallJump: 1
-  JumpSpeed: 12
-  WallJumpSpeed: 15
-  WallJumpInputInfluence: 0.5
+  JumpSpeed: 15
+  WallJumpSpeed: 20
+  WallJumpInputInfluence: 1
   WallJumpControlRecoveryTime: 0.4
   JumpPreGroundingGraceTime: 0.03
   JumpPostGroundingGraceTime: 0.03
@@ -977,7 +984,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 8
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1354290987
 GameObject:
