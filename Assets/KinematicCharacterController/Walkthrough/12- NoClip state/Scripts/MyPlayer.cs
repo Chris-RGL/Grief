@@ -116,10 +116,6 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             characterInputs.CameraRotation = OrbitCamera.Transform.rotation;
             characterInputs.JumpDown = Input.GetKeyDown(KeyCode.Space);
             characterInputs.JumpHeld = Input.GetKey(KeyCode.Space);
-            characterInputs.CrouchDown = Input.GetKeyDown(KeyCode.C);
-            characterInputs.CrouchUp = Input.GetKeyUp(KeyCode.C);
-            characterInputs.CrouchHeld = Input.GetKey(KeyCode.C);
-            characterInputs.NoClipDown = Input.GetKeyUp(KeyCode.Q);
 
             // Apply inputs to character
             Character.SetInputs(ref characterInputs);

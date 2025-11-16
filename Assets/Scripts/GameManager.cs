@@ -1,5 +1,6 @@
 using UnityEngine;
 using KinematicCharacterController.Walkthrough.NoClipState;
+using System.Collections.Generic;
 
 /// <summary>
 /// Manages game state, spawn points, and reset functionality
@@ -16,17 +17,21 @@ public class GameManager : MonoBehaviour
     public Transform playerSpawnPoint;
     public Vector3 playerSpawnOffset = Vector3.zero;
 
-    [Header("Projectile Settings")]
+    [Header("Enemy Settings")]
     public GameObject projectilePrefab;
     public Transform projectileSpawnPoint;
     public Vector3 projectileSpawnOffset = Vector3.zero;
+    [Tooltip("Number of enemies to spawn and maintain at all times")]
+    public int maxEnemies = 3;
+    [Tooltip("Delay before respawning a destroyed enemy")]
+    public float enemyRespawnDelay = 1f;
 
     [Header("Reset Settings")]
     public float resetDelay = 0.5f;
     public bool resetPlayerVelocity = true;
     public bool resetPlayerRotation = false;
 
-    private GameObject currentProjectile;
+    private List<GameObject> activeEnemies = new List<GameObject>();
     private bool isResetting = false;
     private PlayerHealth playerHealth;
 
@@ -76,24 +81,43 @@ public class GameManager : MonoBehaviour
             playerSpawnPoint.rotation = playerTransform.rotation;
         }
 
-        // Find initial projectile if it exists in scene
-        if (currentProjectile == null)
-        {
-            AIchase existingProjectile = FindObjectOfType<AIchase>();
-            if (existingProjectile != null)
-            {
-                currentProjectile = existingProjectile.gameObject;
+        // Find existing enemies in scene or spawn new ones
+        InitializeEnemies();
+    }
 
-                // Set projectile spawn point if not set
-                if (projectileSpawnPoint == null)
-                {
-                    GameObject projSpawnPointObj = new GameObject("ProjectileSpawnPoint");
-                    projectileSpawnPoint = projSpawnPointObj.transform;
-                    projectileSpawnPoint.position = currentProjectile.transform.position + projectileSpawnOffset;
-                    projectileSpawnPoint.rotation = currentProjectile.transform.rotation;
-                }
+    /// <summary>
+    /// Finds existing enemies in the scene and spawns additional ones if needed
+    /// </summary>
+    private void InitializeEnemies()
+    {
+        // Find all existing enemies in the scene
+        AIchase[] existingEnemies = FindObjectsOfType<AIchase>();
+
+        foreach (AIchase enemy in existingEnemies)
+        {
+            if (!activeEnemies.Contains(enemy.gameObject))
+            {
+                RegisterEnemy(enemy.gameObject);
             }
         }
+
+        // Set projectile spawn point based on first enemy if not set
+        if (projectileSpawnPoint == null && activeEnemies.Count > 0)
+        {
+            GameObject projSpawnPointObj = new GameObject("EnemySpawnPoint");
+            projectileSpawnPoint = projSpawnPointObj.transform;
+            projectileSpawnPoint.position = activeEnemies[0].transform.position + projectileSpawnOffset;
+            projectileSpawnPoint.rotation = activeEnemies[0].transform.rotation;
+        }
+
+        // Spawn additional enemies if we don't have enough
+        int enemiesToSpawn = maxEnemies - activeEnemies.Count;
+        for (int i = 0; i < enemiesToSpawn; i++)
+        {
+            SpawnNewEnemy();
+        }
+
+        Debug.Log($"Enemy initialization complete. Active enemies: {activeEnemies.Count}/{maxEnemies}");
     }
 
     /// <summary>
@@ -129,8 +153,8 @@ public class GameManager : MonoBehaviour
         // Reset player position
         ResetPlayer();
 
-        // Reset projectile
-        ResetProjectile();
+        // Reset all enemies
+        ResetAllEnemies();
 
         // IMPORTANT: Restore player health AFTER position reset
         if (playerHealth != null)
@@ -182,93 +206,114 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Resets the projectile to its spawn position
+    /// Resets all enemies to their spawn positions
     /// </summary>
-    private void ResetProjectile()
+    private void ResetAllEnemies()
     {
-        if (currentProjectile == null)
+        // Clean up null references
+        activeEnemies.RemoveAll(enemy => enemy == null);
+
+        // Reset all active enemies
+        foreach (GameObject enemy in activeEnemies)
         {
-            // Try to spawn a new projectile if we have a prefab
-            if (projectilePrefab != null && projectileSpawnPoint != null)
-            {
-                SpawnNewProjectile();
-            }
+            ResetEnemy(enemy);
+        }
+
+        // Spawn new enemies if we're below max count
+        int enemiesToSpawn = maxEnemies - activeEnemies.Count;
+        for (int i = 0; i < enemiesToSpawn; i++)
+        {
+            SpawnNewEnemy();
+        }
+
+        Debug.Log($"All enemies reset. Active count: {activeEnemies.Count}/{maxEnemies}");
+    }
+
+    /// <summary>
+    /// Resets a single enemy to spawn position
+    /// </summary>
+    private void ResetEnemy(GameObject enemy)
+    {
+        if (enemy == null || projectileSpawnPoint == null) return;
+
+        enemy.transform.position = projectileSpawnPoint.position;
+        enemy.transform.rotation = projectileSpawnPoint.rotation;
+
+        // Reset enemy velocity
+        Rigidbody rb = enemy.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        // Reset AIchase internal state
+        AIchase aiChase = enemy.GetComponent<AIchase>();
+        if (aiChase != null)
+        {
+            aiChase.ResetState();
+        }
+
+        Debug.Log($"Enemy reset to: {projectileSpawnPoint.position}");
+    }
+
+    /// <summary>
+    /// Spawns a new enemy at the spawn point
+    /// </summary>
+    private void SpawnNewEnemy()
+    {
+        if (projectilePrefab == null || projectileSpawnPoint == null)
+        {
+            Debug.LogWarning("Cannot spawn enemy: prefab or spawn point not set!");
             return;
         }
 
-        // Move existing projectile to spawn point
-        if (projectileSpawnPoint != null)
+        GameObject newEnemy = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
+        RegisterEnemy(newEnemy);
+        Debug.Log($"New enemy spawned. Total active: {activeEnemies.Count}/{maxEnemies}");
+    }
+
+    /// <summary>
+    /// Registers an enemy with the game manager
+    /// </summary>
+    public void RegisterEnemy(GameObject enemy)
+    {
+        if (!activeEnemies.Contains(enemy))
         {
-            currentProjectile.transform.position = projectileSpawnPoint.position;
-            currentProjectile.transform.rotation = projectileSpawnPoint.rotation;
-
-            // Reset projectile velocity
-            Rigidbody rb = currentProjectile.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.velocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-            }
-
-            // Reset AIchase internal state
-            AIchase aiChase = currentProjectile.GetComponent<AIchase>();
-            if (aiChase != null)
-            {
-                aiChase.ResetState();
-            }
-
-            Debug.Log($"Projectile reset to: {projectileSpawnPoint.position}");
+            activeEnemies.Add(enemy);
+            Debug.Log($"Enemy registered: {enemy.name}. Total active: {activeEnemies.Count}/{maxEnemies}");
         }
     }
 
     /// <summary>
-    /// Spawns a new projectile (useful if projectiles are destroyed on hit)
+    /// Unregisters an enemy from the game manager (called when enemy is destroyed)
     /// </summary>
-    private void SpawnNewProjectile()
+    public void UnregisterEnemy(GameObject enemy)
     {
-        if (projectilePrefab == null || projectileSpawnPoint == null) return;
-
-        currentProjectile = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
-        Debug.Log("New projectile spawned");
-    }
-
-    /// <summary>
-    /// Registers a projectile with the game manager
-    /// </summary>
-    public void RegisterProjectile(GameObject projectile)
-    {
-        currentProjectile = projectile;
-        Debug.Log($"Projectile registered: {projectile.name}");
-    }
-
-    /// <summary>
-    /// Unregisters a projectile from the game manager (called when projectile is destroyed)
-    /// </summary>
-    public void UnregisterProjectile(GameObject projectile)
-    {
-        if (currentProjectile == projectile)
+        if (activeEnemies.Contains(enemy))
         {
-            currentProjectile = null;
-            Debug.Log($"Projectile unregistered: {projectile.name}");
+            activeEnemies.Remove(enemy);
+            Debug.Log($"Enemy unregistered: {enemy.name}. Remaining: {activeEnemies.Count}/{maxEnemies}");
 
-            // Optionally spawn a new one after a delay
+            // Automatically respawn a new enemy to maintain max count
             if (projectilePrefab != null && projectileSpawnPoint != null)
             {
-                StartCoroutine(RespawnProjectileAfterDelay(1f));
+                StartCoroutine(RespawnEnemyAfterDelay(enemyRespawnDelay));
             }
         }
     }
 
     /// <summary>
-    /// Respawns a projectile after a delay
+    /// Respawns an enemy after a delay (only if below max count)
     /// </summary>
-    private System.Collections.IEnumerator RespawnProjectileAfterDelay(float delay)
+    private System.Collections.IEnumerator RespawnEnemyAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
 
-        if (currentProjectile == null) // Make sure one wasn't spawned already
+        // Only spawn if we're below max enemies
+        if (activeEnemies.Count < maxEnemies)
         {
-            SpawnNewProjectile();
+            SpawnNewEnemy();
         }
     }
 
@@ -289,18 +334,36 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates the projectile spawn point
+    /// Updates the enemy spawn point
     /// </summary>
     public void SetProjectileSpawnPoint(Vector3 position, Quaternion rotation)
     {
         if (projectileSpawnPoint == null)
         {
-            GameObject spawnPointObj = new GameObject("ProjectileSpawnPoint");
+            GameObject spawnPointObj = new GameObject("EnemySpawnPoint");
             projectileSpawnPoint = spawnPointObj.transform;
         }
 
         projectileSpawnPoint.position = position;
         projectileSpawnPoint.rotation = rotation;
-        Debug.Log($"Projectile spawn point updated to: {position}");
+        Debug.Log($"Enemy spawn point updated to: {position}");
+    }
+
+    // Legacy methods for backward compatibility
+
+    /// <summary>
+    /// Legacy method - use RegisterEnemy instead
+    /// </summary>
+    public void RegisterProjectile(GameObject projectile)
+    {
+        RegisterEnemy(projectile);
+    }
+
+    /// <summary>
+    /// Legacy method - use UnregisterEnemy instead
+    /// </summary>
+    public void UnregisterProjectile(GameObject projectile)
+    {
+        UnregisterEnemy(projectile);
     }
 }

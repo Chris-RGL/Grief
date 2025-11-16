@@ -1126,6 +1126,8 @@ MonoBehaviour:
   projectilePrefab: {fileID: 1168499903082300333, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
   projectileSpawnPoint: {fileID: 416568083}
   projectileSpawnOffset: {x: 0, y: 0, z: 0}
+  maxEnemies: 3
+  enemyRespawnDelay: 0.5
   resetDelay: 0.5
   resetPlayerVelocity: 1
   resetPlayerRotation: 0
@@ -1142,7 +1144,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 9
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1354290987
 GameObject:
@@ -1725,7 +1727,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 8
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!850595691 &2083223748
 LightingSettings:

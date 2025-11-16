@@ -23,7 +23,8 @@ public class AIchase : MonoBehaviour
 
     [Header("Damage Settings")]
     public int damageAmount = 1;
-    public bool destroyOnHit = false;
+    public bool respawnOnHit = true; // Changed from destroyOnHit
+    public float respawnDelay = 0.5f; // Delay before respawning after hit
     public LayerMask playerLayer = -1; // Set to player layer for better performance
 
     [Header("Click Detection")]
@@ -42,10 +43,19 @@ public class AIchase : MonoBehaviour
     private Renderer _renderer;
     private Color _originalColor;
     private bool _isHovering = false;
+    private bool _isRespawning = false;
+    private Collider _collider;
+    private Vector3 _spawnPosition;
+    private Quaternion _spawnRotation;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
+        _collider = GetComponent<Collider>();
+
+        // Store initial spawn position and rotation
+        _spawnPosition = transform.position;
+        _spawnRotation = transform.rotation;
 
         // Configure Rigidbody for smooth movement
         _rb.interpolation = useInterpolation ? RigidbodyInterpolation.Interpolate : RigidbodyInterpolation.None;
@@ -65,7 +75,7 @@ public class AIchase : MonoBehaviour
         // Register with GameManager if it exists
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.RegisterProjectile(gameObject);
+            GameManager.Instance.RegisterEnemy(gameObject);
         }
     }
 
@@ -117,7 +127,8 @@ public class AIchase : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_playerTransform == null) return;
+        // Don't move while respawning
+        if (_isRespawning || _playerTransform == null) return;
 
         Vector3 modPosition = _playerTransform.position;
         modPosition.y = modPosition.y + 1;
@@ -175,6 +186,9 @@ public class AIchase : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        // Don't process collisions while respawning
+        if (_isRespawning) return;
+
         // Check if we hit the player
         if (collision.gameObject.CompareTag("Character") || collision.gameObject.CompareTag("Player"))
         {
@@ -210,7 +224,7 @@ public class AIchase : MonoBehaviour
     /// </summary>
     private void OnMouseEnter()
     {
-        if (enableClickHighlight && _renderer != null && _renderer.material != null && Cursor.visible)
+        if (enableClickHighlight && _renderer != null && _renderer.material != null && Cursor.visible && !_isRespawning)
         {
             _isHovering = true;
             _renderer.material.color = hoverColor;
@@ -230,15 +244,15 @@ public class AIchase : MonoBehaviour
     }
 
     /// <summary>
-    /// Called when the projectile is clicked - THIS IS THE FIX FOR YOUR BUG
+    /// Called when the projectile is clicked
     /// </summary>
     private void OnMouseDown()
     {
-        if (enableClickHighlight && Cursor.visible)
+        if (enableClickHighlight && Cursor.visible && !_isRespawning)
         {
-            Debug.Log("Projectile clicked and destroyed!");
+            Debug.Log("Projectile clicked! Respawning...");
 
-            // Give player health before destroying
+            // Give player health before respawning
             if (_playerHealth != null)
             {
                 _playerHealth.Heal(healthGainOnDestroy);
@@ -262,13 +276,8 @@ public class AIchase : MonoBehaviour
                 }
             }
 
-            // Unregister from GameManager before destroying
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.UnregisterProjectile(gameObject);
-            }
-
-            Destroy(gameObject);
+            // Respawn instead of destroying
+            StartCoroutine(RespawnAfterDelay(respawnDelay));
         }
     }
 
@@ -294,11 +303,88 @@ public class AIchase : MonoBehaviour
             }
         }
 
-        // Optionally destroy this projectile
-        if (destroyOnHit)
+        // Respawn on hit instead of destroying
+        if (respawnOnHit)
         {
-            Destroy(gameObject);
+            StartCoroutine(RespawnAfterDelay(respawnDelay));
         }
+    }
+
+    /// <summary>
+    /// Coroutine to respawn the enemy after a delay
+    /// </summary>
+    private IEnumerator RespawnAfterDelay(float delay)
+    {
+        if (_isRespawning) yield break; // Prevent multiple respawns
+
+        _isRespawning = true;
+
+        // Disable visibility and collision
+        if (_renderer != null)
+        {
+            _renderer.enabled = false;
+        }
+        if (_collider != null)
+        {
+            _collider.enabled = false;
+        }
+
+        // Stop all movement
+        if (_rb != null)
+        {
+            _rb.velocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+            _rb.isKinematic = true; // Make kinematic during respawn
+        }
+
+        yield return new WaitForSeconds(delay);
+
+        // Respawn at spawn point
+        RespawnAtSpawnPoint();
+
+        // Re-enable visibility and collision
+        if (_renderer != null)
+        {
+            _renderer.enabled = true;
+            _renderer.material.color = _originalColor; // Reset color
+        }
+        if (_collider != null)
+        {
+            _collider.enabled = true;
+        }
+
+        // Re-enable physics
+        if (_rb != null)
+        {
+            _rb.isKinematic = false;
+        }
+
+        _isRespawning = false;
+        _isHovering = false;
+
+        Debug.Log($"{gameObject.name} respawned at spawn point");
+    }
+
+    /// <summary>
+    /// Respawns the enemy at its spawn point (or GameManager's spawn point)
+    /// </summary>
+    private void RespawnAtSpawnPoint()
+    {
+        Vector3 respawnPos = _spawnPosition;
+        Quaternion respawnRot = _spawnRotation;
+
+        // Check if GameManager has a spawn point set
+        if (GameManager.Instance != null && GameManager.Instance.projectileSpawnPoint != null)
+        {
+            respawnPos = GameManager.Instance.projectileSpawnPoint.position;
+            respawnRot = GameManager.Instance.projectileSpawnPoint.rotation;
+        }
+
+        transform.position = respawnPos;
+        transform.rotation = respawnRot;
+
+        // Reset state
+        ResetState();
     }
 
     /// <summary>
@@ -321,10 +407,26 @@ public class AIchase : MonoBehaviour
             _renderer.material.color = _originalColor;
         }
         _isHovering = false;
+        _isRespawning = false;
+    }
+
+    /// <summary>
+    /// Updates the spawn position (useful for dynamic spawn points)
+    /// </summary>
+    public void SetSpawnPoint(Vector3 position, Quaternion rotation)
+    {
+        _spawnPosition = position;
+        _spawnRotation = rotation;
     }
 
     private void OnDestroy()
     {
+        // Unregister from GameManager when truly destroyed
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.UnregisterEnemy(gameObject);
+        }
+
         // Reset material color when destroyed to prevent material leak
         if (_renderer != null && _renderer.material != null && !_isHovering)
         {
