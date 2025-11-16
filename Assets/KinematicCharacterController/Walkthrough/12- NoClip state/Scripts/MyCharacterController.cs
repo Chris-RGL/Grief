@@ -58,6 +58,11 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         public float NoClipMoveSpeed = 10f;
         public float NoClipSharpness = 15;
 
+        [Header("Animation")]
+        public Animator CharacterAnimator;
+        [Tooltip("Minimum speed to transition from idle to walk animation")]
+        public float WalkSpeedThreshold = 0.1f;
+
         [Header("Misc")]
         public List<Collider> IgnoredColliders = new List<Collider>();
         public bool OrientTowardsGravity = false;
@@ -213,8 +218,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                     }
                 case CharacterState.NoClip:
                     {
-                        _moveInputVector = inputs.CameraRotation * moveInputVector;
-                        _lookInputVector = cameraPlanarDirection;
+                        _moveInputVector = cameraPlanarRotation * moveInputVector;
                         break;
                     }
             }
@@ -226,13 +230,6 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         /// </summary>
         public void BeforeCharacterUpdate(float deltaTime)
         {
-            switch (CurrentCharacterState)
-            {
-                case CharacterState.Default:
-                    {
-                        break;
-                    }
-            }
         }
 
         /// <summary>
@@ -245,20 +242,28 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             switch (CurrentCharacterState)
             {
                 case CharacterState.Default:
-                case CharacterState.NoClip:
                     {
                         if (_lookInputVector != Vector3.zero && OrientationSharpness > 0f)
                         {
                             // Smoothly interpolate from current to target look direction
                             Vector3 smoothedLookInputDirection = Vector3.Slerp(Motor.CharacterForward, _lookInputVector, 1 - Mathf.Exp(-OrientationSharpness * deltaTime)).normalized;
 
-                            // Set the current rotation (which will be used by the KinematicCharacterMotor)
+                            // Set the current rotation (which will be used by the motor)
                             currentRotation = Quaternion.LookRotation(smoothedLookInputDirection, Motor.CharacterUp);
                         }
                         if (OrientTowardsGravity)
                         {
                             // Rotate from current up to invert gravity
                             currentRotation = Quaternion.FromToRotation((currentRotation * Vector3.up), -Gravity) * currentRotation;
+                        }
+                        break;
+                    }
+                case CharacterState.NoClip:
+                    {
+                        if (_lookInputVector != Vector3.zero && OrientationSharpness > 0f)
+                        {
+                            Vector3 smoothedLookInputDirection = Vector3.Slerp(Motor.CharacterForward, _lookInputVector, 1 - Mathf.Exp(-OrientationSharpness * deltaTime)).normalized;
+                            currentRotation = Quaternion.LookRotation(smoothedLookInputDirection, Motor.CharacterUp);
                         }
                         break;
                     }
@@ -279,9 +284,6 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                         Vector3 targetMovementVelocity = Vector3.zero;
                         if (Motor.GroundingStatus.IsStableOnGround)
                         {
-                            // Reset wall jump control reduction when grounded
-                            _wallJumpControlReduction = 0f;
-
                             // Reorient velocity on slope
                             currentVelocity = Motor.GetDirectionTangentToSurface(currentVelocity, Motor.GroundingStatus.GroundNormal) * currentVelocity.magnitude;
 
@@ -295,20 +297,12 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                         }
                         else
                         {
-                            // Recover control gradually after wall jump
-                            if (_wallJumpControlReduction > 0f)
-                            {
-                                _wallJumpControlReduction -= deltaTime / WallJumpControlRecoveryTime;
-                                _wallJumpControlReduction = Mathf.Max(0f, _wallJumpControlReduction);
-                            }
-
                             // Add move input
                             if (_moveInputVector.sqrMagnitude > 0f)
                             {
-                                // Calculate effective air control (reduced after wall jump, gradually recovers)
-                                float airControlMultiplier = Mathf.Lerp(1f, WallJumpInputInfluence, _wallJumpControlReduction);
-
-                                targetMovementVelocity = _moveInputVector * MaxAirMoveSpeed;
+                                // Apply reduced control during wall jump
+                                float controlInfluence = 1f - _wallJumpControlReduction;
+                                targetMovementVelocity = _moveInputVector * MaxAirMoveSpeed * controlInfluence;
 
                                 // Prevent climbing on un-stable slopes with air movement
                                 if (Motor.GroundingStatus.FoundAnyGround)
@@ -318,7 +312,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                                 }
 
                                 Vector3 velocityDiff = Vector3.ProjectOnPlane(targetMovementVelocity - currentVelocity, Gravity);
-                                currentVelocity += velocityDiff * AirAccelerationSpeed * airControlMultiplier * deltaTime;
+                                currentVelocity += velocityDiff * AirAccelerationSpeed * deltaTime;
                             }
 
                             // Gravity
@@ -326,6 +320,13 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
                             // Drag
                             currentVelocity *= (1f / (1f + (Drag * deltaTime)));
+
+                            // Recover wall jump control over time
+                            if (_wallJumpControlReduction > 0f)
+                            {
+                                _wallJumpControlReduction -= deltaTime / WallJumpControlRecoveryTime;
+                                _wallJumpControlReduction = Mathf.Max(0f, _wallJumpControlReduction);
+                            }
                         }
 
                         // Handle jumping
@@ -343,6 +344,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
 
                                         // Add to the return velocity and reset jump state
                                         currentVelocity += (Motor.CharacterUp * JumpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
+
                                         _jumpRequested = false;
                                         _doubleJumpConsumed = true;
                                         _jumpedThisFrame = true;
@@ -474,6 +476,57 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
                         }
                         break;
                     }
+            }
+
+            // Update animations every frame
+            UpdateAnimations(deltaTime);
+        }
+
+        /// <summary>
+        /// Updates the animator with current character state and movement data
+        /// </summary>
+        private void UpdateAnimations(float deltaTime)
+        {
+            if (CharacterAnimator != null)
+            {
+                // Calculate horizontal movement speed (velocity along the ground plane)
+                Vector3 horizontalVelocity = Vector3.ProjectOnPlane(Motor.BaseVelocity, Motor.CharacterUp);
+                float speed = horizontalVelocity.magnitude;
+
+                // Get input magnitude for blend trees
+                float inputMagnitude = _moveInputVector.magnitude;
+
+                // Calculate vertical velocity for jump/fall detection
+                float verticalVelocity = Vector3.Dot(Motor.BaseVelocity, Motor.CharacterUp);
+
+                // Set animator parameters
+                CharacterAnimator.SetFloat("Speed", speed);
+                CharacterAnimator.SetFloat("ForwardSpeed", inputMagnitude);
+                CharacterAnimator.SetFloat("VerticalVelocity", verticalVelocity);
+
+                CharacterAnimator.SetBool("IsGrounded", Motor.GroundingStatus.IsStableOnGround);
+                CharacterAnimator.SetBool("IsCrouching", _isCrouching);
+                CharacterAnimator.SetBool("IsNoClip", CurrentCharacterState == CharacterState.NoClip);
+                CharacterAnimator.SetBool("IsMoving", speed > WalkSpeedThreshold);
+
+                // Trigger jump animation
+                if (_jumpedThisFrame)
+                {
+                    CharacterAnimator.SetTrigger("Jump");
+                }
+
+                // Optional: Set movement direction for strafing animations
+                if (inputMagnitude > 0.01f)
+                {
+                    Vector3 localMove = transform.InverseTransformDirection(_moveInputVector);
+                    CharacterAnimator.SetFloat("MoveX", localMove.x);
+                    CharacterAnimator.SetFloat("MoveZ", localMove.z);
+                }
+                else
+                {
+                    CharacterAnimator.SetFloat("MoveX", 0f);
+                    CharacterAnimator.SetFloat("MoveZ", 0f);
+                }
             }
         }
 
