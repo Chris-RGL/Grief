@@ -1098,6 +1098,14 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1168499903082300322, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
+      propertyPath: destroyOnHit
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1168499903082300322, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
+      propertyPath: reboundSpeedMultiplier
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 1168499903082300326, guid: 352221f5bb6ba064486b4fcd2cd42208, type: 3}
       propertyPath: m_RootOrder
       value: 1
@@ -1200,7 +1208,7 @@ MonoBehaviour:
   player: {fileID: 1219715622}
   lastStartingPlatform: {fileID: 305848002}
   platformPrefabs:
-  - {fileID: 5529036212148122675, guid: 4aacc63d45bbf9643a8584f24ec7e137, type: 3}
+  - {fileID: 5529036212148122675, guid: 0253c910c7457ac45a8381db5c9c69ae, type: 3}
   pieceLength: 60
   bufferDistance: 120
   maxActivePlatforms: 6

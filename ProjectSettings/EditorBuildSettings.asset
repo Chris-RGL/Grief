@@ -4,5 +4,11 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Main Menu.unity
+    guid: 9ecc3b5f3c509f640999561ff9279349
+  - enabled: 1
+    path: Assets/Scenes/InfiniteScroll.unity
+    guid: 1c424615a5e8c2e49a2815b0f2f4463e
   m_configObjects: {}
