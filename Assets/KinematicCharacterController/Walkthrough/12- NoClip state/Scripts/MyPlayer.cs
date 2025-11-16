@@ -13,11 +13,15 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
         public Transform CameraFollowPoint;
         public MyCharacterController Character;
 
+        public AudioClip shootSound;
+
         private const string MouseXInput = "Mouse X";
         private const string MouseYInput = "Mouse Y";
         private const string MouseScrollInput = "Mouse ScrollWheel";
         private const string HorizontalInput = "Horizontal";
         private const string VerticalInput = "Vertical";
+
+        private AudioSource myAudioSource;
 
         [Header("Shooting Animation")]
         public Animator characterAnimator; // Assign your character's Animator
@@ -34,6 +38,8 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             // Ignore the character's collider(s) for camera obstruction checks
             OrbitCamera.IgnoredColliders.Clear();
             OrbitCamera.IgnoredColliders.AddRange(Character.GetComponentsInChildren<Collider>());
+
+            myAudioSource = GetComponent<AudioSource>();
         }
 
         private void Update()
@@ -57,6 +63,7 @@ namespace KinematicCharacterController.Walkthrough.NoClipState
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
+                myAudioSource.PlayOneShot(shootSound);
             }
 
             HandleCharacterInput();
